@@ -41,44 +41,35 @@ const addValueToObjectKey = (object, key, value) => {
 const getKittyOdds = (kitty_1, kitty_2) => {
     var dna_1 = kitty_1.dna;
     var dna_2 = kitty_2.dna;
-
     var geneOdds = {};
     for (const trait in dna_1) {
         if (dna_1.hasOwnProperty(trait) && dna_2.hasOwnProperty(trait)) {
             geneOdds[trait] = {};
 
-            const geneArray_1 = dna_1[trait];
-            const geneArray_2 = dna_2[trait];
+            dna_1[trait].forEach((value,index) => addValueToObjectKey(geneOdds[trait], value, geneOddsFromIndex[index]));
+            dna_2[trait].forEach((value,index) => addValueToObjectKey(geneOdds[trait], value, geneOddsFromIndex[index]));
 
-            var mutationLoopFinished = false;
-            geneArray_1.forEach((value, index) => {
+            dna_1[trait].forEach((value,index) => {
                 const gene_1 = value;
                 const odds_1 = geneOddsFromIndex[index];
 
-                var mutationFound = false;
-                geneArray_2.forEach((value, index) => {
+                dna_2[trait].forEach((value,index) => {
                     const gene_2 = value;
                     const odds_2 = geneOddsFromIndex[index];
-                    
-                    var genePairSum = gene_1 + gene_2;
-                    if (mutationGenePairs.hasOwnProperty(genePairSum) && !mutationLoopFinished) {
-                        if (mutationGenePairs[genePairSum].baseGeneId === gene_1 || mutationGenePairs[genePairSum].baseGeneId === gene_2) {
-                        const gene_3 = mutationGenePairs[genePairSum].id;
-                        const odds_3 = mutationGenePairs[genePairSum].odds;
-                        const mutation_odds = (odds_1 * 2) * (odds_2 * 2) * odds_3;
-                        
-                        addValueToObjectKey(geneOdds[trait], gene_3, mutation_odds);
-                        mutationFound = true;
-                        } else {
-                            if (!mutationLoopFinished) addValueToObjectKey(geneOdds[trait], gene_2, odds_2);
-                        }
-                    } else {
-                        if (!mutationLoopFinished) addValueToObjectKey(geneOdds[trait], gene_2, odds_2);
-                    }
-                });
 
-                if (!mutationFound) addValueToObjectKey(geneOdds[trait], gene_1, odds_1);
-                mutationLoopFinished = true;
+                    var genePairSum = gene_1 + gene_2;
+                    if (mutationGenePairs.hasOwnProperty(genePairSum)) {
+                        if (mutationGenePairs[genePairSum].baseGeneId === gene_1 || mutationGenePairs[genePairSum].baseGeneId === gene_2) {
+                            const gene_3 = mutationGenePairs[genePairSum].id;
+                            const odds_3 = mutationGenePairs[genePairSum].odds;
+                            const mutation_odds = (odds_1 * 2) * (odds_2 * 2) * odds_3;
+
+                            addValueToObjectKey(geneOdds[trait], gene_3, mutation_odds);
+                            addValueToObjectKey(geneOdds[trait], gene_1, -mutation_odds/2);
+                            addValueToObjectKey(geneOdds[trait], gene_2, -mutation_odds/2);
+                        }
+                    }
+                })
             })
         } else {
             console.log('Error', `Trait ${trait} not recognized.`);
@@ -111,7 +102,6 @@ const getOddsOfBreedingTraits = (kitty_1, kitty_2, desiredTraits) => {
     const id_1 = kitty_1.id;
     const id_2 = kitty_2.id;
     const kittyOdds = getKittyOdds(kitty_1, kitty_2);
-    
     var traitBreedingOdds = {};
     var totalBreedingOdds = 1;
     for (const traitName in desiredTraits) {
@@ -182,13 +172,6 @@ const getBestBreedingPairs = (kittyArray, desiredTraits) => {
         if (a.total > b.total) return -1;
         if (a.total < b.total) return 1;
         return 0;
-    })
-
-    console.log({
-        odds: allBreedingOdds[0].total,
-        id_1: allBreedingOdds[0].id_1,
-        id_2: allBreedingOdds[0].id_2,
-        url: `https://www.cryptokitties.co/kitty/${allBreedingOdds[0].id_1}/breed/${allBreedingOdds[0].id_2}`
     })
 
     return allBreedingOdds;
@@ -277,5 +260,13 @@ app.get('/kitties/sale', async(req,res) => {
         res.send(response.data);
     })
 })
+
+app.get('/cattributes', async(req,res) => {
+    ck_api.get('/cattributes')
+    .then(response => {
+        res.send(response.data);
+    });
+});
+
 
 app.listen(8080, console.log('Server running on port 8080'));

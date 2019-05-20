@@ -1,0 +1,90 @@
+.inline-text {
+    font-weight: 700;
+    font-size: 1.28571429em;
+    margin: 0.2em 0.2em;
+    line-height: 1.28571429em;
+    font-family: Lato,'Helvetica Neue',Arial,Helvetica,sans-serif;
+    color: rgba(0,0,0,.85);
+}
+
+.inline-text-ids {
+    font-weight: 500;
+    color: #575553;
+}
+
+.inline-id {
+    display: inline-block;
+    position: relative;
+    top: 2px;
+    left: 1px;
+    color: rgba(0, 0, 0, 0.62);
+}
+
+.inline-id:hover {
+    color: #ef52d1;
+}
+
+.kitty-label {
+    padding-bottom: 0.574em !important;
+    padding-top: 0.43em !important;
+    font-size: 1em !important;
+    color: rgba(0,0,0,.4) !important;
+}
+
+.kitty-label:hover {
+    transform: translateY(-1px) !important;
+}
+
+.kitty-label-image {
+    height: 2.09996em!important;
+}
+
+.etched-text-main {
+    text-shadow: 0 2px white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #ef52d1;
+    display: inline-block;
+    position: relative;
+    top: 0.25em;
+    font-size: 1.9rem;
+  }
+
+.etched-text {
+    text-shadow: 0 2px white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #b8bec5;
+    display: inline-block;
+    position: relative;
+    top: 0.25em;
+    font-size: 1.9rem;
+  }
+
+.strong-subheader-default {
+    font-size: 1.8rem !important;
+    font-weight: 500 !important;
+    color: #5858589c !important;
+}
+
+.strong-subheader {
+    font-size: 1.14285714rem !important;
+    font-weight: 600 !important;
+    color: #585858e0 !important;
+}
+
+.breed-button:hover {
+    transform: translateY(-1px) !important;
+}
+
+.strong-subheader-default-locked {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: rgba(0,0,0)!important;
+}
+
+.strong-subheader-default-notenoughcats {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: rgba(0, 0, 0, 0.78) !important;
+}

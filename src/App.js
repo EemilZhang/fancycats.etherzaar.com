@@ -1,13 +1,51 @@
 import React from 'react';
 import Web3 from 'web3';
 import axios from 'axios';
-import parseKittyMetadata from './utilities/parseKittyMetadata.js';
+import * as moment from 'moment';
+
+import { Button, Header, Container, Icon, Responsive } from 'semantic-ui-react'
 
 import SignIn from './Layout/SignIn';
+import Loading from './Layout/Loading';
 
-const CurlinTraits = { mouth: '10', colorprimary: '7', pattern: '18', colorsecondary: '13' };
+import getKittyMetadata from './utilities/getKittyMetadata.js';
+import getKittiesByAddress from './utilities/getKittiesByAddress';
+import getKittyBreedingPairs from './utilities/getKittyBreedingPairs';
+import getCattribute from './utilities/getCattribute';
 
+import KittyList from './DataComponents/KittyList/KittyList';
+import KittyRecipes from './DataComponents/KittyRecipes/KittyRecipes';
+import KittyPairs from './DataComponents/KittyPairs/KittyPairs';
+import Profile from './DataComponents/Profile/Profile';
 
+import './App.css';
+
+const FancyTraits = {
+  Curdlin: {
+    traits: { mouth: '10', colorprimary: '7', pattern: '18', colortertiary: '13' },
+    names: { mouth: 'saycheese', colorprimary: 'nachocheez', pattern: 'dippedcone', colortertiary: 'missmuffett' }
+  },
+  Glitter: {
+    traits: { wild: '27', pattern: '6', environment: '18', colorprimary: '26' },
+    names: { wild: 'glitter', pattern: 'rorschach', environment: 'juju', colorprimary: 'hyacinth' }
+  },
+  Al: {
+    traits: {body: '12', mouth: '13', colortertiary: '5', colorprimary: '12'},
+    names: {body: 'munchkin', mouth: 'moue', colortertiary: 'cashewmilk', colorprimary: 'brownies'}
+  },
+  Pizzazz: {
+    traits: {eyes: '1', colorsecondary: '10', pattern: '7', body: '17'},
+    names: {eyes: 'wonky', colorsecondary: 'scarlet', pattern: 'spangled', body: 'mekong'}
+  },
+  Pawrula: {
+    traits: {body: '24', pattern: '5', colorsecondary: '15'},
+    names: {body: 'fox', pattern: 'camo', colorsecondary: 'butterscotch'}
+  },
+  Page: {
+    traits: {pattern: '2', colortertiary: '2', mouth: '1'},
+    names: {pattern: 'rascal', colortertiary: 'peach', mouth: 'wasntme'}
+  }
+}
 
 class App extends React.Component {
   constructor() {
@@ -15,161 +53,266 @@ class App extends React.Component {
 
     this.state = {
       web3: null,
-      locked: null,
-      pendingUnlock: false
+      accountLocked: null,
+      pendingUnlock: false,
+      address: null,
+      syncing: null,
+      default: false,
+      analyzing: null,
+      lastSync: null,
+      totalKitties: 0,
+      selectedRecipe: null
     };
   }
 
-  componentDidMount() {
-    window.addEventListener('load', () => {
-      if (typeof window.web3 === 'undefined') {
-        this.setState({web3: false});
-      } else {
+  getInjectedWeb3 = () => {
+    if (typeof window.web3 === 'undefined') this.setState({web3: false, accountLocked: null})
+      else {
         const web3 = new Web3(window.web3.currentProvider);
-        web3.eth.getAccounts()
-          .then(accounts => {
-            if (accounts.length === 0) { 
-              this.setState({web3, locked: true});
-            }
-            else { 
-              this.setState({web3, locked: false});
-            }
+        web3.eth.getAccounts().then(accounts => {
+            if (accounts[0]) {
+              if (this.state.cache) {
+                if (this.state.cache.address === accounts[0]){
+                    this.setState({ web3, kitties_array: this.state.cache.kitties_array, totalKitties: this.state.cache.kitties_array.length, kitties_metadata: this.state.cache.kitties_metadata, accountLocked: false, address: accounts[0], default: true }) 
+                } else {
+                  this.setState({ web3, accountLocked: false, address: accounts[0] });
+                  getKittiesByAddress(web3).then(kitties_array => {
+                      this.setState({kitties_array, totalKitties: kitties_array.length});
+                      getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, default: true}));
+                  });
+                }
+              }
+              else {  
+                this.setState({ web3, accountLocked: false, address: accounts[0] });
+                getKittiesByAddress(web3).then(kitties_array => {
+                    this.setState({kitties_array, totalKitties: kitties_array.length});
+                    getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, default: true}));
+                });
+              }
+            } else  this.setState({ web3, accountLocked: true })
           });
+      };
+  }
+
+  cacheAppState = () => {
+    if (this.state.web3 && this.state.accountLocked === false && this.state.kitties_array && this.state.kitties_metadata)
+      this.state.web3.eth.getAccounts().then(accounts => {
+        const cacheObject = { address: accounts[0], kitties_array: this.state.kitties_array, kitties_metadata: this.state.kitties_metadata, timestamp: moment() };
+        localStorage.setItem('ckCache', JSON.stringify(cacheObject));
+      });
+  };
+
+  clearAppCache = () => {
+    localStorage.removeItem('ckCache');
+    this.setState({kitties_array: null});
+  }; 
+
+  componentDidMount() {
+    window.addEventListener('load', this.getInjectedWeb3);
+    window.addEventListener('beforeunload', this.cacheAppState);
+  };
+
+  componentWillMount() {
+    const cacheString = localStorage.getItem('ckCache');
+    if (cacheString) this.setState({cache: JSON.parse(cacheString)});
+  };
+
+  refresh = () => {
+    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
+      this.setState({pendingUnlock: false, accountLocked: false, breeding_pairs: null, selectedRecipe: null, totalKitties: null, syncing: 'Loading kitties', default: false});
+        getKittiesByAddress(this.state.web3).then(kitties_array => {
+            this.setState({kitties_array, totalKitties: kitties_array.length, syncing: 'Loading metadata'});
+            getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, syncing: null, default: true}));
+        });
+    }
+  }
+
+  requestAccounts = () => {
+    localStorage.removeItem('ckCache');
+    this.setState({pendingUnlock: true, kitties_array: null, kitties_metadata: null, address: null});
+
+    this.state.web3.eth.requestAccounts((err, result) => {
+      if (err) {
+        this.setState({pendingUnlock: false})
+      } else if (result.length < 1) {
+        this.setState({pendingUnlock: true});
+      } else {
+        this.setState({pendingUnlock: false, accountLocked: false, syncing: 'Loading kitties', address: result[0]});
+        getKittiesByAddress(this.state.web3).then(kitties_array => {
+            this.setState({kitties_array, totalKitties: kitties_array.length, syncing: 'Loading metadata'});
+            getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, syncing: null, default: true}));
+        });
       };
     });
   }
 
-  requestAccounts = () => {
-    this.setState({pendingUnlock: true});
-    this.state.web3.eth.requestAccounts((err, result) => {
-      if (err) {
-        this.setState({pendingUnlock: false});
-      } else {
-        this.setState({pendingUnlock: false, locked: false});
-      }
-    });
-  }
+  getFullKittiesMetadataLocal = async () => getKittyMetadata(this.state.kitties_array, this.state.web3)
+    .then(kitties_metadata => 
+      this.setState({kitties_metadata_array: kitties_metadata.array, kitties_metadata_object: kitties_metadata.object})
+  );
+  
+  getKittiesByWalletAddress = async () => getKittiesByAddress(this.state.web3)
+    .then(kitties_array => 
+      this.setState({kitties_array})
+  );
 
-  getFullKittiesMetadataLocal = async () => {
-    const { kitties_array, web3 } = this.state;
-
-    if (kitties_array.length > 0 && web3) {
-      var kitty_id_array = [];
-      kitties_array.forEach(
-        (value) => { kitty_id_array.push(value.id) }
-      );
-
-      var kitties_metadata = [];
-      
-      var responseQueue = [];
-      var counter = 0;
-      var metaCounter = 0;
-      for (var i = 0; i < kitty_id_array.length; i++) {
-        var kitty_id = kitty_id_array[i];
-        var id_hex = ("000000" + parseInt(kitty_id).toString(16)).substr(-6);
-        var response = web3.eth.call({
-          to: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d", // contract address
-          data: "0xe98b7f4d0000000000000000000000000000000000000000000000000000000000" + id_hex
-        });
-        responseQueue.push(response);
-        counter += 1;
-        
-        if (counter % 30 === 0 || ((i === kitty_id_array.length - 1) && (responseQueue.length > 0))) {
-            var responseResults = await Promise.all(responseQueue);
-            for (var k = 0; k < responseResults.length; k++) {
-                var kitty_metadata = parseKittyMetadata(responseResults[k]);
-                var id = kitty_id_array[metaCounter + k];
-                kitty_metadata['id'] = id;
-                kitties_metadata.push(kitty_metadata);
-            }
-            responseQueue = [];
-            counter = 0;
-            metaCounter += 30;
-        }
-      }
-      console.log(kitties_metadata);
-      this.setState({kitties_metadata});
-    }
-  }
-
-  getKittiesByWalletAddress = async () => {
-    const { web3 } = this.state;
-    if (web3) {
-      const allAccounts = await web3.eth.getAccounts();
-      const owner_wallet_address = allAccounts[0];
-      axios.get('/kitties', {params: {owner_wallet_address}})
-        .then((response) => {
-          const kitties_array = response.data.kitties;
-          console.log(kitties_array);
-          this.setState({kitties_array});
+  getBreedingPairs = async (fancy_name) => {
+    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
+      this.setState({analyzing: 'Analyzing kitties', breeding_pairs: null, selectedRecipe: null, selectedFancy: null, default: false});
+      getKittyBreedingPairs(this.state.kitties_metadata.array, FancyTraits[fancy_name].traits)
+        .then(breeding_pairs => {
+          console.log(`breeding_pairs, ${fancy_name}`, breeding_pairs);
+          if (breeding_pairs.length < 1) {
+          } else {
+            this.setState({breeding_pairs, selectedRecipe: FancyTraits[fancy_name].names, selectedFancy: fancy_name, analyzing: null})
+          }
         })
-        .catch((error) => {
-          console.log(error);
+        .catch(() => {
+          this.setState({analyzing: null})
         })
     }
   }
-
-  getOptimalBreedingPairs = async () => {
-    const { kitties_metadata } = this.state;
-
-    if (kitties_metadata) {
-      var ready_kitties = [];
-      kitties_metadata.forEach((value) => {
-        if (value.isReady) {
-          ready_kitties.push(value);
-        }
+  
+  getCattributes = async () => axios.get('/cattributes')
+    .then(response => {
+      const allCattributesArray = response.data;
+      const traitNames = ["unknown", "secret", "environment", "mouth", "wild", "colorsecondary", "colortertiary", "colorprimary", "eyes", "coloreyes", "pattern", "body"];
+      var cattributesIndex = {};
+      traitNames.forEach((cattribute) => {
+        cattributesIndex[cattribute] = {};
       });
 
-      axios.post('/kitties/best', {
-        kitties_metadata: ready_kitties,
-        kitties_traits: CurlinTraits
+      allCattributesArray.forEach((cattribute) => {
+        const {type, gene, description} = cattribute;
+        cattributesIndex[type][gene] = description;
       })
-        .then((response) => {
-          const optimalPairs = response.data;
-          console.log(optimalPairs);
-          this.setState({optimalPairs})
-        })
-        .catch((error) => {
-          console.log(error);
-        })
+
+      this.setState({cattributesIndex});
+
+      console.log(cattributesIndex)
     }
+  );
+
+  getCattribute = (name) => {
+    FancyTraits['Page'].forEach(value => {
+      console.log(getCattribute.byName(value))
+    })
+
   }
 
-  getSales = () => {
-    axios.get('/kitties/sale')
-      .then(response => {
-        console.log(response.data);
-      })
-  }
 
   render() {
+    console.log(this.state);
 
-    if (this.state.locked) {
-      return(<SignIn requestAccounts={this.requestAccounts} pendingUnlock={this.state.pendingUnlock}/>)
+
+    const MainContents = () => {
+      if (this.state.syncing) {
+        return Loading(this.state.syncing)
+      } else if (this.state.analyzing) {
+        return Loading(this.state.analyzing)
+      } else if (this.state.accountLocked) {
+        return (
+          <Container textAlign='center'>
+              <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
+                <Header
+                    as='h2'
+                    content=''
+                    textAlign='center'
+                    style={{color: 'rgba(0,0,0,.0.78)'}}
+                >
+                    <Header.Subheader className='strong-subheader-default-locked' style={{paddingTop: '0.5em', color: 'rgba(0,0,0,.0.98)', fontSize: '2rem', fontWeight: '600'}}>
+                      Unlock your account to get started
+                    </Header.Subheader>
+                </Header>
+                <Button
+                  color='pink'
+                  size='large'
+                  content="Unlock"
+                  loading={this.state.pendingUnlock}
+                  onClick={this.requestAccounts}
+                  className='SignIn-Button'
+                />
+            </Container>
+        )
+      } else if (this.state.kitties_array) {
+        if (this.state.kitties_array.length < 2) {
+          return (
+            <Container textAlign='center'>
+                <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
+                  <Header
+                      as='h2'
+                      content=''
+                      textAlign='center'
+                      style={{color: 'rgba(0,0,0,.0.78)'}}
+                  >
+                      <Header.Subheader className='strong-subheader-default-notenoughcats' style={{paddingTop: '0.5em', color: 'rgba(0,0,0,.0.78)', fontSize: '2rem', fontWeight: '600'}}>
+                        You need to own at least two CryptoKitties to use this app
+                      </Header.Subheader>
+                  </Header>
+                  <Button
+                    color='pink'
+                    size='large'
+                    content="Buy A Kitty"
+                    as='a'
+                    href='https://cryptokitties.co'
+                    className='SignIn-Button'
+                  />
+              </Container>
+          )
+        } else if (this.state.default) {
+          return (
+            <Container textAlign='center'>
+                <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
+                  <Header
+                      as='h2'
+                      content=''
+                      textAlign='center'
+                      style={{color: 'rgba(0,0,0,.0.78)'}}
+                  >
+                      <Header.Subheader className='strong-subheader-default' style={{paddingTop: '0.5em'}}>
+                        Select a fancy recipe to find kitty breeding pairs
+                      </Header.Subheader>
+                  </Header>
+              </Container>
+          )
+        } else if (this.state.breeding_pairs) {
+          return (
+            <KittyPairs breeding_pairs={this.state.breeding_pairs} kitties_array={this.state.kitties_array} selectedRecipe={this.state.selectedRecipe} selectedFancy={this.state.selectedFancy} default={this.state.default}/>
+          )
+        }
+      } 
     }
     return (
-      <div>
+      <div className="App">
+        <Responsive minWidth={767} className="main-container-desktop"/>
+        <Responsive maxWidth={767} className="main-container-mobile"/>
 
-        <header>
-          <h1>Welcome to React</h1>
-        </header>
+        <Container textAlign="justified" style={{borderBottom: '1px solid #d6d6d6'}}>
+          <Header as='h2' style={{fontSize: '2rem'}}>
+            Fancy Recipes
+            <Header.Subheader style={{fontSize: '1.4rem', paddingTop: '0.1em'}}>
+              Refresh synced kitties <Icon name='refresh' size='small' link onClick={this.refresh} loading={this.state.syncing ? true : false} style={{display: 'inline-block', position: 'relative', right: '-0.06rem', top: '-0.01rem'}}/>
+            </Header.Subheader>
+          </Header>
+          <Responsive minWidth={767} className="main-container-desktop-small"/>
+          <Responsive maxWidth={767} style={{paddingTop: '0.5em'}}/>
+          <KittyRecipes getBreedingPairs={this.getBreedingPairs}/>
+          <Responsive minWidth={767} style={{marginBottom: '2em'}}/>
+          <Responsive maxWidth={767} style={{marginBottom: '1em'}}/>
 
-        {this.state.pendingUnlock && (
-          <div>Awaiting wallet unlock...</div>
-        )}
+        </Container>
+
         
-        {this.state.locked && (
-          <button onClick={this.requestAccounts}>Unlock Wallet</button>
-        )}
-
-        <button onClick={this.getKittiesByWalletAddress}>Get Kitties</button>
-        <button onClick={this.getFullKittiesMetadataLocal}>Get Kitties Metadata (Local)</button>
-        <button onClick={this.getOptimalBreedingPairs}>Get Optimal Breeding Pairs For Curlin</button>
-        <button onClick={this.getSales}>Get sales</button>
-
+        <Container>
+          <Responsive as={Container} maxWidth={506} style={{marginTop: '1em'}}/>
+          {MainContents()}
+        </Container>
       </div>
     );
   }
 }
+
+//               <KittyList kitties_array={this.state.kitties_array}/> 
+
 
 export default App;

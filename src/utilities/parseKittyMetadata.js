@@ -1,5 +1,5 @@
 const parseKittyMetadata = (raw_response) => {
-    const traitNames = ["unknown", "secret", "mystery", "mouth", "wild", "colorsecondary", "colortertiary", "colorprimary", "eyes", "coloreyes", "pattern", "body"];
+    const traitNames = ["unknown", "secret", "environment", "mouth", "wild", "colortertiary", "colorsecondary", "colorprimary", "eyes", "coloreyes", "pattern", "body"];
   
     var raw_hex = raw_response.substr(2);
   
