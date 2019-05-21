@@ -2,7 +2,7 @@
 /* eslint-disable no-undef */
 const express = require('express');
 const axios = require('axios');
-const CK_API_TOKEN = 'yrASwAuzKcbFDTHRU6S8CoIl_P9h12cbcaux3ksOUWM';
+const CK_API_TOKEN = '';
 
 const ck_api = axios.create({
     baseURL: 'https://public.api.cryptokitties.co/v1',
