@@ -118,7 +118,7 @@ class App extends React.Component {
   };
 
   refresh = () => {
-    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
+    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked && (this.state.kitties_array.length > 1)) {
       this.setState({pendingUnlock: false, accountLocked: false, breeding_pairs: null, selectedRecipe: null, totalKitties: null, syncing: 'Loading kitties', default: false, activeCache: {Curdlin: [], Glitter: [], Al: [], Pizzazz: [], Pawrula: [], Page: []}});
         getKittiesByAddress(this.state.web3).then(kitties_array => {
             this.setState({kitties_array, totalKitties: kitties_array.length, syncing: 'Loading metadata'});
@@ -139,8 +139,12 @@ class App extends React.Component {
       } else {
         this.setState({pendingUnlock: false, accountLocked: false, syncing: 'Loading kitties', address: result[0]});
         getKittiesByAddress(this.state.web3).then(kitties_array => {
+          if (kitties_array.length > 1) {
             this.setState({kitties_array, totalKitties: kitties_array.length, syncing: 'Loading metadata'});
             getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, syncing: null, default: true}));
+          } else {
+            this.setState({kitties_array, totalKitties: kitties_array.length, syncing: null});
+          }
         });
       };
     });
@@ -157,7 +161,7 @@ class App extends React.Component {
   );
 
   getBreedingPairs = async (fancy_name) => {
-    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
+    if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked && (this.state.kitties_array.length > 1)) {
       this.setState({analyzing: 'Analyzing kitties', breeding_pairs: null, selectedRecipe: null, selectedFancy: null, default: false});
 
       if (this.state.activeCache[fancy_name].length > 0) {
