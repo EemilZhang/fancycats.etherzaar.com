@@ -1,22 +1,17 @@
 import React from 'react';
 import Web3 from 'web3';
-import axios from 'axios';
 import * as moment from 'moment';
 
 import { Button, Header, Container, Icon, Responsive } from 'semantic-ui-react'
 
-import SignIn from './Layout/SignIn';
 import Loading from './Layout/Loading';
 
 import getKittyMetadata from './utilities/getKittyMetadata.js';
 import getKittiesByAddress from './utilities/getKittiesByAddress';
 import getKittyBreedingPairs from './utilities/getKittyBreedingPairs';
-import getCattribute from './utilities/getCattribute';
 
-import KittyList from './DataComponents/KittyList/KittyList';
 import KittyRecipes from './DataComponents/KittyRecipes/KittyRecipes';
 import KittyPairs from './DataComponents/KittyPairs/KittyPairs';
-import Profile from './DataComponents/Profile/Profile';
 
 import './App.css';
 
@@ -47,6 +42,15 @@ const FancyTraits = {
   }
 }
 
+const activeCacheTemplate = {
+  Curdlin: [],
+  Glitter: [],
+  Al: [],
+  Pizzazz: [],
+  Pawrula: [],
+  Page: []
+}
+
 class App extends React.Component {
   constructor() {
     super();
@@ -61,7 +65,8 @@ class App extends React.Component {
       analyzing: null,
       lastSync: null,
       totalKitties: 0,
-      selectedRecipe: null
+      selectedRecipe: null,
+      activeCache: activeCacheTemplate
     };
   }
 
@@ -102,11 +107,6 @@ class App extends React.Component {
       });
   };
 
-  clearAppCache = () => {
-    localStorage.removeItem('ckCache');
-    this.setState({kitties_array: null});
-  }; 
-
   componentDidMount() {
     window.addEventListener('load', this.getInjectedWeb3);
     window.addEventListener('beforeunload', this.cacheAppState);
@@ -119,7 +119,7 @@ class App extends React.Component {
 
   refresh = () => {
     if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
-      this.setState({pendingUnlock: false, accountLocked: false, breeding_pairs: null, selectedRecipe: null, totalKitties: null, syncing: 'Loading kitties', default: false});
+      this.setState({pendingUnlock: false, accountLocked: false, breeding_pairs: null, selectedRecipe: null, totalKitties: null, syncing: 'Loading kitties', default: false, activeCache: {Curdlin: [], Glitter: [], Al: [], Pizzazz: [], Pawrula: [], Page: []}});
         getKittiesByAddress(this.state.web3).then(kitties_array => {
             this.setState({kitties_array, totalKitties: kitties_array.length, syncing: 'Loading metadata'});
             getKittyMetadata(kitties_array, this.state.web3).then(kitties_metadata => this.setState({kitties_metadata, syncing: null, default: true}));
@@ -159,52 +159,27 @@ class App extends React.Component {
   getBreedingPairs = async (fancy_name) => {
     if (!this.state.syncing && !this.state.analyzing && !this.state.accountLocked) {
       this.setState({analyzing: 'Analyzing kitties', breeding_pairs: null, selectedRecipe: null, selectedFancy: null, default: false});
-      getKittyBreedingPairs(this.state.kitties_metadata.array, FancyTraits[fancy_name].traits)
-        .then(breeding_pairs => {
-          console.log(`breeding_pairs, ${fancy_name}`, breeding_pairs);
-          if (breeding_pairs.length < 1) {
-          } else {
-            this.setState({breeding_pairs, selectedRecipe: FancyTraits[fancy_name].names, selectedFancy: fancy_name, analyzing: null})
-          }
-        })
-        .catch(() => {
-          this.setState({analyzing: null})
-        })
+
+      if (this.state.activeCache[fancy_name].length > 0) {
+        this.setState({breeding_pairs: this.state.activeCache[fancy_name], selectedRecipe: FancyTraits[fancy_name].names, selectedFancy: fancy_name, analyzing: null,});
+      } else {
+        getKittyBreedingPairs(this.state.kitties_metadata.array, FancyTraits[fancy_name].traits)
+          .then(breeding_pairs => {
+            if (breeding_pairs.length < 1) {
+            } else {
+              var cacheObject = this.state.activeCache;
+              cacheObject[fancy_name] = breeding_pairs;
+              this.setState({breeding_pairs, selectedRecipe: FancyTraits[fancy_name].names, selectedFancy: fancy_name, analyzing: null, activeCache: cacheObject})
+            }
+          })
+          .catch(() => {
+            this.setState({analyzing: null})
+          })
+      }
     }
   }
-  
-  getCattributes = async () => axios.get('/cattributes')
-    .then(response => {
-      const allCattributesArray = response.data;
-      const traitNames = ["unknown", "secret", "environment", "mouth", "wild", "colorsecondary", "colortertiary", "colorprimary", "eyes", "coloreyes", "pattern", "body"];
-      var cattributesIndex = {};
-      traitNames.forEach((cattribute) => {
-        cattributesIndex[cattribute] = {};
-      });
-
-      allCattributesArray.forEach((cattribute) => {
-        const {type, gene, description} = cattribute;
-        cattributesIndex[type][gene] = description;
-      })
-
-      this.setState({cattributesIndex});
-
-      console.log(cattributesIndex)
-    }
-  );
-
-  getCattribute = (name) => {
-    FancyTraits['Page'].forEach(value => {
-      console.log(getCattribute.byName(value))
-    })
-
-  }
-
 
   render() {
-    console.log(this.state);
-
-
     const MainContents = () => {
       if (this.state.syncing) {
         return Loading(this.state.syncing)
@@ -216,7 +191,6 @@ class App extends React.Component {
               <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
                 <Header
                     as='h2'
-                    content=''
                     textAlign='center'
                     style={{color: 'rgba(0,0,0,.0.78)'}}
                 >
@@ -241,7 +215,6 @@ class App extends React.Component {
                 <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
                   <Header
                       as='h2'
-                      content=''
                       textAlign='center'
                       style={{color: 'rgba(0,0,0,.0.78)'}}
                   >
@@ -265,7 +238,6 @@ class App extends React.Component {
                 <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
                   <Header
                       as='h2'
-                      content=''
                       textAlign='center'
                       style={{color: 'rgba(0,0,0,.0.78)'}}
                   >
@@ -311,8 +283,6 @@ class App extends React.Component {
     );
   }
 }
-
-//               <KittyList kitties_array={this.state.kitties_array}/> 
 
 
 export default App;

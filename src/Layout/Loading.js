@@ -9,7 +9,7 @@ export default function Loading(syncing) {
             <Container textAlign='center' fluid style={{paddingTop: '5em'}}>
                 <Segment basic>
                     <Dimmer active inverted>
-                        <Loader size='large' inline='centered'>{syncing}</Loader>
+                        <Loader size='large' inline='centered' className='loader-text'>{syncing}</Loader>
                     </Dimmer>
                 </Segment>
             </Container>

@@ -2,3 +2,10 @@
     height: 100% !important;
     width: 100% !important;
 }
+
+.loader-text {
+    font-size: 1.8rem !important;
+    line-height: 1.2em !important;
+    color: rgba(0,0,0,.6) !important;
+    font-weight: 500 !important;
+}

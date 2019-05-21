@@ -3,12 +3,12 @@ const parseKittyMetadata = (raw_response) => {
   
     var raw_hex = raw_response.substr(2);
   
-    var isGestating_hex = raw_hex.substr(raw_hex.length - 640, 64);
+    //var isGestating_hex = raw_hex.substr(raw_hex.length - 640, 64);
     var isReady_hex = raw_hex.substr(raw_hex.length - 576, 64);
     var cooldownIndex_hex = raw_hex.substr(raw_hex.length - 512, 64);
-    var nextActionAt_hex = raw_hex.substr(raw_hex.length - 448, 64);
-    var siringWithId_hex = raw_hex.substr(raw_hex.length - 384, 64);
-    var birthTime_hex = raw_hex.substr(raw_hex.length - 320, 64);
+    //var nextActionAt_hex = raw_hex.substr(raw_hex.length - 448, 64);
+    //var siringWithId_hex = raw_hex.substr(raw_hex.length - 384, 64);
+    //var birthTime_hex = raw_hex.substr(raw_hex.length - 320, 64);
     var matronId_hex = raw_hex.substr(raw_hex.length - 256, 64);
     var sireId_hex = raw_hex.substr(raw_hex.length - 192, 64);
     var gen_hex = raw_hex.substr(raw_hex.length - 128, 64);

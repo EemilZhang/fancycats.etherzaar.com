@@ -8,14 +8,13 @@ const getKittyBreedingPairs = (kitties_metadata, traits) => {
               if (value.isReady) ready_kitties.push(value);
             });
       
-            axios.post('/kitties/best', {
+            axios.post('https://h1u5les3u1.execute-api.us-east-1.amazonaws.com/v1/kitties/best', {
               kitties_metadata: ready_kitties,
               kitties_traits: traits
             })
               .then((response) => {
                     resolve(response.data);
                     const optimalPairs = response.data;
-                    console.log(optimalPairs);
                     this.setState({optimalPairs})
               })
               .catch((error) => {

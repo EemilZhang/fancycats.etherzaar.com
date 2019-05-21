@@ -135,7 +135,7 @@ const KittyPairs = (props) => {
     }
     const traitIcons = traits.map(name => {
         return (
-            <Label as='a' href={`https://www.cryptokitties.co/search?include=sale,sire&search=${name}`} target="_blank" >
+            <Label as='a' key={name} href={`https://www.cryptokitties.co/search?include=sale,sire&search=${name}`} target="_blank" >
                 <Icon name='dna' /> {name}
             </Label>
         )
@@ -148,7 +148,6 @@ const KittyPairs = (props) => {
                 <Responsive minWidth={506} style={{paddingTop: '1em'}}/>
                 <Header
                     as='h2'
-                    content=''
                     textAlign='center'
                     style={{color: 'rgba(0,0,0,.0.78)'}}
                 >
@@ -180,7 +179,6 @@ const KittyPairs = (props) => {
                 <Container textAlign='center' style={{paddingTop: '1em'}}>
                     <Header
                         as='h2'
-                        content=''
                         textAlign='center'
                         className='parent-subheader'
                     >

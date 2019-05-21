@@ -19,7 +19,7 @@ const getKittyMetadata = (kitties_array, web3) => {
                 var kitty_id = kitty_id_array[i];
                 var id_hex = ("000000" + parseInt(kitty_id).toString(16)).substr(-6);
                 var response = web3.eth.call({
-                    to: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d", // contract address
+                    to: "0x06012c8cf97BEaD5deAe237070F9587f8E7A266d",
                     data: "0xe98b7f4d0000000000000000000000000000000000000000000000000000000000" + id_hex
                 });
                 responseQueue.push(response);
