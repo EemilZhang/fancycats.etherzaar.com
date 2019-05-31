@@ -17,11 +17,11 @@ const mutationGenePairs = {
     57: {id: 30, odds: 0.125, baseGeneId: 28}
 };
 
-const getKittyOdds = (kitty_1, kitty_2) => {
+const kittyBreedingOdds = (kitty_1, kitty_2) => {
     var dna_1 = kitty_1.dna;
     var dna_2 = kitty_2.dna;
     var geneOdds = {};
-    
+
     for (const trait in dna_1) {
         if (dna_1.hasOwnProperty(trait) && dna_2.hasOwnProperty(trait)) {
             geneOdds[trait] = {};
@@ -57,3 +57,5 @@ const getKittyOdds = (kitty_1, kitty_2) => {
     }
     return geneOdds;
 };
+
+module.exports = kittyBreedingOdds;
